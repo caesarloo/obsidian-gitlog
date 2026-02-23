@@ -1,0 +1,27 @@
+{
+  "name": "obsidian-gitlog",
+  "version": "1.0.0",
+  "description": "Generate Git commit logs automatically using Copilot AI based on file changes",
+  "main": "dist/main.js",
+  "scripts": {
+    "dev": "vite build --watch",
+    "build": "vite build",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [
+    "obsidian",
+    "plugin",
+    "git",
+    "copilot",
+    "ai"
+  ],
+  "author": "Your Name",
+  "license": "MIT",
+  "type": "commonjs",
+  "devDependencies": {
+    "@types/node": "^25.3.0",
+    "obsidian": "^1.12.2",
+    "typescript": "^5.9.3",
+    "vite": "^5.4.21"
+  }
+}
