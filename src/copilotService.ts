@@ -11,8 +11,19 @@ export class CopilotService {
    * Check if Copilot plugin is available
    */
   isCopilotAvailable(): boolean {
-    const copilotPlugin = (this.app as any).plugins.getPlugin('Copilot');
-    return !!copilotPlugin;
+    // Try multiple possible plugin IDs, prioritize lowercase 'copilot' based on console output
+    const possibleIds = ['copilot', 'Copilot', 'obsidian-copilot'];
+    
+    for (const id of possibleIds) {
+      const copilotPlugin = (this.app as any).plugins.getPlugin(id);
+      if (copilotPlugin) {
+        console.log(`Found Copilot plugin with ID: ${id}`);
+        return true;
+      }
+    }
+    
+    console.log('Copilot plugin not found. Checked IDs:', possibleIds);
+    return false;
   }
 
   /**
@@ -20,7 +31,18 @@ export class CopilotService {
    */
   async generateCommitLog(changes: Array<{ filePath: string; changeType: string; diff: string }>, language: 'zh' | 'en', strategy: 'detailed' | 'simple'): Promise<string> {
     try {
-      const copilotPlugin = (this.app as any).plugins.getPlugin('Copilot');
+      // Try multiple possible plugin IDs, prioritize lowercase 'copilot' based on console output
+      const possibleIds = ['copilot', 'Copilot', 'obsidian-copilot'];
+      let copilotPlugin = null;
+      
+      for (const id of possibleIds) {
+        copilotPlugin = (this.app as any).plugins.getPlugin(id);
+        if (copilotPlugin) {
+          console.log(`Found Copilot plugin with ID: ${id}`);
+          break;
+        }
+      }
+      
       if (!copilotPlugin) {
         throw new Error('Copilot plugin is not installed or enabled');
       }

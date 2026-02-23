@@ -114,15 +114,31 @@ class CopilotService {
    * Check if Copilot plugin is available
    */
   isCopilotAvailable() {
-    const copilotPlugin = this.app.plugins.getPlugin("Copilot");
-    return !!copilotPlugin;
+    const possibleIds = ["copilot", "Copilot", "obsidian-copilot"];
+    for (const id of possibleIds) {
+      const copilotPlugin = this.app.plugins.getPlugin(id);
+      if (copilotPlugin) {
+        console.log(`Found Copilot plugin with ID: ${id}`);
+        return true;
+      }
+    }
+    console.log("Copilot plugin not found. Checked IDs:", possibleIds);
+    return false;
   }
   /**
    * Generate commit log using Copilot AI
    */
   async generateCommitLog(changes, language, strategy) {
     try {
-      const copilotPlugin = this.app.plugins.getPlugin("Copilot");
+      const possibleIds = ["copilot", "Copilot", "obsidian-copilot"];
+      let copilotPlugin = null;
+      for (const id of possibleIds) {
+        copilotPlugin = this.app.plugins.getPlugin(id);
+        if (copilotPlugin) {
+          console.log(`Found Copilot plugin with ID: ${id}`);
+          break;
+        }
+      }
       if (!copilotPlugin) {
         throw new Error("Copilot plugin is not installed or enabled");
       }

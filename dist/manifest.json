@@ -9,6 +9,6 @@
   "isDesktopOnly": false,
   "dependencies": {
     "obsidian-git": "^2.20.0",
-    "Copilot": "^1.5.0"
+    "copilot": "^3.2.1"
   }
 }
