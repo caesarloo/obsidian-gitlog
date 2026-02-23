@@ -4,11 +4,11 @@
   "version": "1.0.0",
   "minAppVersion": "1.5.0",
   "description": "Generate Git commit logs automatically using Copilot AI based on file changes",
-  "author": "Your Name",
-  "authorUrl": "https://github.com/yourusername",
+  "author": "CaesarLoo",
+  "authorUrl": "https://github.com/caesarloo/obsidian-gitlog",
   "isDesktopOnly": false,
   "dependencies": {
     "obsidian-git": "^2.20.0",
-    "obsidian-copilot": "^1.5.0"
+    "Copilot": "^1.5.0"
   }
 }

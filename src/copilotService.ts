@@ -11,7 +11,7 @@ export class CopilotService {
    * Check if Copilot plugin is available
    */
   isCopilotAvailable(): boolean {
-    const copilotPlugin = (this.app as any).plugins.getPlugin('obsidian-copilot');
+    const copilotPlugin = (this.app as any).plugins.getPlugin('Copilot');
     return !!copilotPlugin;
   }
 
@@ -20,7 +20,7 @@ export class CopilotService {
    */
   async generateCommitLog(changes: Array<{ filePath: string; changeType: string; diff: string }>, language: 'zh' | 'en', strategy: 'detailed' | 'simple'): Promise<string> {
     try {
-      const copilotPlugin = (this.app as any).plugins.getPlugin('obsidian-copilot');
+      const copilotPlugin = (this.app as any).plugins.getPlugin('Copilot');
       if (!copilotPlugin) {
         throw new Error('Copilot plugin is not installed or enabled');
       }
