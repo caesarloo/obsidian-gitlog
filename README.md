@@ -34,6 +34,23 @@ Git Log Generator是一个Obsidian插件，依赖Git插件和Copilot插件，使
 4. 点击"从文件安装插件"，选择下载的插件文件
 5. 启用插件
 
+### Release 资产说明
+
+- 本项目在 GitHub Release 发布时会自动上传以下安装文件：
+	- `main.js`
+	- `manifest.json`
+	- `styles.css`
+- 对于 Obsidian 插件安装（含 BRAT），请优先使用以上 3 个资产文件。
+- GitHub 默认的 `Source code (zip/tar.gz)` 是源码包，由 GitHub 自动生成，不能关闭；它不是插件安装包。
+
+### 自动发版（Tag）
+
+- 本项目已配置工作流：推送语义化版本标签时自动创建 Release 并上传插件资产。
+- 标签格式：`v*.*.*`（例如：`v1.0.1`）。
+- 示例命令：
+	- `git tag v1.0.1`
+	- `git push origin v1.0.1`
+
 ## 使用方法
 
 ### 生成Git提交日志
