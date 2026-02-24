@@ -1,5 +1,14 @@
 import { App, Notice } from 'obsidian';
 
+const DEBUG_LOG = false;
+
+function debugLog(...args: unknown[]) {
+  if (!DEBUG_LOG) {
+    return;
+  }
+  console.log(...args);
+}
+
 export interface GitChange {
   filePath: string;
   changeType: 'added' | 'modified' | 'deleted';
@@ -17,12 +26,12 @@ export class GitService {
    * Get Git changes from the repository
    */
   async getGitChanges(): Promise<GitChange[]> {
-    console.log('=== Getting Git changes ===');
+    debugLog('=== Getting Git changes ===');
     
     try {
       // Check if Git plugin is available
       const gitPlugin = (this.app as any).plugins.getPlugin('obsidian-git');
-      console.log('Git plugin found:', !!gitPlugin);
+      debugLog('Git plugin found:', !!gitPlugin);
       
       if (!gitPlugin) {
         throw new Error('Git plugin is not installed or enabled');
@@ -33,14 +42,14 @@ export class GitService {
       let changes: GitChange[] = [];
 
       try {
-        console.log('Git plugin API methods:', Object.keys(gitPlugin));
+        debugLog('Git plugin API methods:', Object.keys(gitPlugin));
         
         // Try modern obsidian-git API
         if (gitPlugin.getChanges) {
-          console.log('Using modern getChanges API');
+          debugLog('Using modern getChanges API');
           const gitChanges = await gitPlugin.getChanges();
-          console.log('Git changes found:', gitChanges.length);
-          console.log('Git changes details:', JSON.stringify(gitChanges, null, 2));
+          debugLog('Git changes found:', gitChanges.length);
+          debugLog('Git changes details:', JSON.stringify(gitChanges, null, 2));
           
           changes = gitChanges.map((change: any) => ({
             filePath: change.path,
@@ -50,20 +59,20 @@ export class GitService {
         } 
         // Try older obsidian-git API
         else if (gitPlugin.repository) {
-          console.log('Using older repository API');
-          console.log('Repository methods:', Object.keys(gitPlugin.repository));
+          debugLog('Using older repository API');
+          debugLog('Repository methods:', Object.keys(gitPlugin.repository));
           
           const status = await gitPlugin.repository.status();
-          console.log('Git status:', JSON.stringify(status, null, 2));
+          debugLog('Git status:', JSON.stringify(status, null, 2));
           
           for (const [path, statusInfo] of Object.entries(status)) {
             const statusObj = statusInfo as any;
-            console.log(`Checking path: ${path}, status: ${JSON.stringify(statusObj)}`);
+            debugLog(`Checking path: ${path}, status: ${JSON.stringify(statusObj)}`);
             
             if (statusObj.worktreeStatus) {
-              console.log(`Found change in ${path}, status: ${statusObj.worktreeStatus}`);
+              debugLog(`Found change in ${path}, status: ${statusObj.worktreeStatus}`);
               const diff = await gitPlugin.repository.diff(path);
-              console.log(`Diff for ${path}: ${diff}`);
+              debugLog(`Diff for ${path}: ${diff}`);
               
               changes.push({
                 filePath: path,
@@ -75,37 +84,37 @@ export class GitService {
         }
         // Try direct git commands as fallback
         else {
-          console.log('Trying direct git commands');
+          debugLog('Trying direct git commands');
           changes = await this.getGitChangesViaShell();
         }
         
         // If no changes found, try direct git commands
         if (changes.length === 0) {
-          console.log('No changes found via API, trying direct git commands');
+          debugLog('No changes found via API, trying direct git commands');
           changes = await this.getGitChangesViaShell();
         }
         
         // Fallback to mock data if still no changes
         if (changes.length === 0) {
-          console.log('No changes found, using mock data');
+          debugLog('No changes found, using mock data');
           changes.push({
             filePath: 'notes/example.md',
             changeType: 'modified',
             diff: '--- a/notes/example.md\n+++ b/notes/example.md\n@@ -1,3 +1,5 @@\n # Example Note\n\n-This is an example note.\n+This is an updated example note.\n+\n+Added a new line.'
           });
         } else {
-          console.log('Successfully got actual Git changes:', changes.length);
-          console.log('Changes details:', JSON.stringify(changes, null, 2));
+          debugLog('Successfully got actual Git changes:', changes.length);
+          debugLog('Changes details:', JSON.stringify(changes, null, 2));
         }
       } catch (apiError) {
         console.warn('Error using Git plugin API:', apiError);
         // Try direct git commands as fallback
         try {
-          console.log('Trying direct git commands as fallback');
+          debugLog('Trying direct git commands as fallback');
           changes = await this.getGitChangesViaShell();
           
           if (changes.length === 0) {
-            console.log('No changes found via shell, using mock data');
+            debugLog('No changes found via shell, using mock data');
             // Fallback to mock data if API call fails
             changes.push({
               filePath: 'notes/example.md',
@@ -124,7 +133,7 @@ export class GitService {
         }
       }
 
-      console.log('=== Git changes retrieval completed ===');
+      debugLog('=== Git changes retrieval completed ===');
       return changes;
     } catch (error) {
       console.error('Error getting Git changes:', error);
@@ -137,45 +146,45 @@ export class GitService {
    * Get Git changes using direct shell commands
    */
   private async getGitChangesViaShell(): Promise<GitChange[]> {
-    console.log('=== Getting Git changes via shell ===');
+    debugLog('=== Getting Git changes via shell ===');
     
     try {
       const vaultPath = this.app.vault.adapter.basePath;
-      console.log('Vault path:', vaultPath);
+      debugLog('Vault path:', vaultPath);
       
       const { execSync } = require('child_process');
       
       // Check if we're in a git repository
       try {
         execSync('git rev-parse --is-inside-work-tree', { cwd: vaultPath, stdio: 'ignore' });
-        console.log('Confirmed we are in a git repository');
+        debugLog('Confirmed we are in a git repository');
       } catch (e) {
-        console.log('Not in a git repository');
+        debugLog('Not in a git repository');
         return [];
       }
       
       // Get git status
       const statusOutput = execSync('git status --porcelain', { cwd: vaultPath, encoding: 'utf8' });
-      console.log('Git status output:', statusOutput);
+      debugLog('Git status output:', statusOutput);
       
       const changes: GitChange[] = [];
       
       // Parse status output
       const statusLines = statusOutput.trim().split('\n');
-      console.log('Status lines:', statusLines);
+      debugLog('Status lines:', statusLines);
       
       for (const line of statusLines) {
         if (!line.trim()) continue;
         
         const status = line.substring(0, 2).trim();
         const path = line.substring(3).trim();
-        console.log(`Status: ${status}, Path: ${path}`);
+        debugLog(`Status: ${status}, Path: ${path}`);
         
         // Get diff for the file
         let diff = '';
         try {
           diff = execSync(`git diff ${path}`, { cwd: vaultPath, encoding: 'utf8' });
-          console.log(`Diff for ${path}:`, diff);
+          debugLog(`Diff for ${path}:`, diff);
         } catch (e) {
           console.warn(`Error getting diff for ${path}:`, e);
         }
@@ -187,7 +196,7 @@ export class GitService {
         });
       }
       
-      console.log('Changes via shell:', changes);
+      debugLog('Changes via shell:', changes);
       return changes;
     } catch (error) {
       console.error('Error getting Git changes via shell:', error);

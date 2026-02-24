@@ -2,6 +2,15 @@ import { App, Notice, Plugin } from 'obsidian';
 import { GitLogSettings } from '../settings';
 import { LogGenerator } from '../logGenerator';
 
+const DEBUG_LOG = false;
+
+function debugLog(...args: unknown[]) {
+  if (!DEBUG_LOG) {
+    return;
+  }
+  console.log(...args);
+}
+
 export class CommandManager {
   private app: App;
   private plugin: Plugin;
@@ -48,7 +57,7 @@ export class CommandManager {
       if (log) {
         // Show log in a modal or notification
         new Notice('Git commit log generated successfully');
-        console.log('Generated Git commit log:', log);
+        debugLog('Generated Git commit log:', log);
         
         // Copy log to clipboard
         await navigator.clipboard.writeText(log);
@@ -71,7 +80,7 @@ export class CommandManager {
         // Note: This is a placeholder implementation
         // In real implementation, we would interact with Git plugin's commit UI
         new Notice('Git commit log generated and filled successfully');
-        console.log('Generated Git commit log:', log);
+        debugLog('Generated Git commit log:', log);
         
         // Copy log to clipboard as fallback
         await navigator.clipboard.writeText(log);

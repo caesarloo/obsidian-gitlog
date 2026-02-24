@@ -5,8 +5,13 @@ import { CopilotService } from './copilotService';
 import { LogGenerator } from './logGenerator';
 import { CommandManager } from './ui/commands';
 
+const DEBUG_LOG = false;
+
 // Add global log function for better visibility
 function log(message: string) {
+  if (!DEBUG_LOG) {
+    return;
+  }
   console.log(`[GitLog] ${message}`);
   // Also try to log to the console in a different way
   if (typeof window !== 'undefined' && window.console) {
@@ -31,7 +36,9 @@ export default class GitLogPlugin extends Plugin {
     log('=== Plugin loading started ===');
     
     // Test direct console.log as well
-    console.log('Direct console.log test - Plugin loading started');
+    if (DEBUG_LOG) {
+      console.log('Direct console.log test - Plugin loading started');
+    }
     
     log('1. Loading settings...');
     await this.loadSettings();
@@ -67,12 +74,16 @@ export default class GitLogPlugin extends Plugin {
 
     // Log plugin loaded
     log('=== Plugin loaded successfully ===');
-    console.log('Direct console.log test - Plugin loaded successfully');
+    if (DEBUG_LOG) {
+      console.log('Direct console.log test - Plugin loaded successfully');
+    }
   }
 
   async onunload() {
     // Log plugin unloaded
-    console.log('Git Log Generator plugin unloaded');
+    if (DEBUG_LOG) {
+      console.log('Git Log Generator plugin unloaded');
+    }
   }
 
   async loadSettings() {

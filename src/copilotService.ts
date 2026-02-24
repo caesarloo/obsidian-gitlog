@@ -1,7 +1,19 @@
 import { App, Notice } from 'obsidian';
 
+const DEBUG_LOG = false;
+
+function debugLog(...args: unknown[]) {
+  if (!DEBUG_LOG) {
+    return;
+  }
+  console.log(...args);
+}
+
 // Add log function for consistency
 function log(message: string) {
+  if (!DEBUG_LOG) {
+    return;
+  }
   console.log(`[GitLog-Copilot] ${message}`);
   if (typeof window !== 'undefined' && window.console) {
     window.console.log(`[GitLog-Copilot] ${message}`);
@@ -24,51 +36,51 @@ export class CopilotService {
    */
   isCopilotAvailable(): boolean {
     log('=== Checking Copilot plugin availability ===');
-    console.log('Direct console.log - Checking Copilot plugin availability');
+    debugLog('Direct console.log - Checking Copilot plugin availability');
     
     // Try multiple possible plugin IDs, prioritize lowercase 'copilot' based on console output
     const possibleIds = ['copilot', 'Copilot', 'obsidian-copilot'];
     
     // Print all installed plugins for debugging
     log(`Checking plugins with IDs: ${JSON.stringify(possibleIds)}`);
-    console.log('Direct console.log - Checking plugins with IDs:', possibleIds);
+    debugLog('Direct console.log - Checking plugins with IDs:', possibleIds);
     
     try {
       // Check if plugins object exists
       const pluginsObj = (this.app as any).plugins;
       log(`Plugins object exists: ${!!pluginsObj}`);
-      console.log('Direct console.log - Plugins object exists:', !!pluginsObj);
+      debugLog('Direct console.log - Plugins object exists:', !!pluginsObj);
       
       if (pluginsObj) {
         // Try different ways to get installed plugins
         const allPlugins = Object.keys(pluginsObj.plugins || pluginsObj.enabledPlugins || {});
         log(`All installed plugins: ${JSON.stringify(allPlugins)}`);
-        console.log('Direct console.log - All installed plugins:', allPlugins);
+        debugLog('Direct console.log - All installed plugins:', allPlugins);
         
         // Try different methods to get plugin
         for (const id of possibleIds) {
           log(`Checking for plugin with ID: ${id}`);
-          console.log('Direct console.log - Checking for plugin with ID:', id);
+          debugLog('Direct console.log - Checking for plugin with ID:', id);
           
           // Try getPlugin method
           const copilotPlugin1 = pluginsObj.getPlugin ? pluginsObj.getPlugin(id) : null;
           log(`  Using getPlugin(): ${!!copilotPlugin1}`);
-          console.log('Direct console.log - Using getPlugin():', !!copilotPlugin1);
+          debugLog('Direct console.log - Using getPlugin():', !!copilotPlugin1);
           
           // Try direct access
           const copilotPlugin2 = pluginsObj.plugins ? pluginsObj.plugins[id] : null;
           log(`  Direct access to plugins['${id}']: ${!!copilotPlugin2}`);
-          console.log('Direct console.log - Direct access to plugins[', id, ']:', !!copilotPlugin2);
+          debugLog('Direct console.log - Direct access to plugins[', id, ']:', !!copilotPlugin2);
           
           if (copilotPlugin1 || copilotPlugin2) {
             log(`Found Copilot plugin with ID: ${id}`);
-            console.log('Direct console.log - Found Copilot plugin with ID:', id);
+            debugLog('Direct console.log - Found Copilot plugin with ID:', id);
             return true;
           }
         }
       } else {
         log('Plugins object is null or undefined');
-        console.log('Direct console.log - Plugins object is null or undefined');
+        debugLog('Direct console.log - Plugins object is null or undefined');
       }
     } catch (error) {
       log(`Error checking Copilot plugin: ${error instanceof Error ? error.message : String(error)}`);
@@ -76,7 +88,7 @@ export class CopilotService {
     }
     
     log('=== Copilot plugin not found ===');
-    console.log('Direct console.log - Copilot plugin not found');
+    debugLog('Direct console.log - Copilot plugin not found');
     return false;
   }
 
@@ -92,7 +104,7 @@ export class CopilotService {
       for (const id of possibleIds) {
         copilotPlugin = (this.app as any).plugins.getPlugin(id);
         if (copilotPlugin) {
-          console.log(`Found Copilot plugin with ID: ${id}`);
+          debugLog(`Found Copilot plugin with ID: ${id}`);
           break;
         }
       }
@@ -103,13 +115,13 @@ export class CopilotService {
 
       // Prepare comprehensive prompt for Copilot to generate summary
       const summaryPrompt = this.buildSummaryPrompt(changes, language, strategy);
-      console.log('Generated summary prompt for Copilot:', summaryPrompt);
+      debugLog('Generated summary prompt for Copilot:', summaryPrompt);
 
       // Try to use actual Copilot API to generate comprehensive summary
       try {
         // Check if copilotPlugin has a chat or generate method
         if (copilotPlugin.chat || copilotPlugin.generate || copilotPlugin.complete) {
-          console.log('Using actual Copilot API for summary generation');
+          debugLog('Using actual Copilot API for summary generation');
           let response;
           
           if (copilotPlugin.chat) {
@@ -120,23 +132,23 @@ export class CopilotService {
             response = await copilotPlugin.complete(summaryPrompt);
           }
           
-          console.log('Copilot API response:', response);
+          debugLog('Copilot API response:', response);
           if (response && typeof response === 'string' && response.trim()) {
             return response.trim();
           }
         } 
         // Check if copilotPlugin has other API methods
         else {
-          console.log('Copilot plugin API methods:', Object.keys(copilotPlugin));
+          debugLog('Copilot plugin API methods:', Object.keys(copilotPlugin));
         }
       } catch (apiError) {
         console.warn('Error using Copilot API, falling back to enhanced mock response:', apiError);
       }
 
       // Fallback to enhanced mock response with comprehensive summary
-      console.log('Using enhanced mock response with comprehensive summary');
+      debugLog('Using enhanced mock response with comprehensive summary');
       const generatedLog = await this.generateComprehensiveSummary(changes, language, strategy);
-      console.log('Generated comprehensive summary:', generatedLog);
+      debugLog('Generated comprehensive summary:', generatedLog);
 
       return generatedLog;
     } catch (error) {
@@ -341,7 +353,7 @@ Affected files:
 
     // Generate response based on actual changes if available
     if (changes && changes.length > 0) {
-      console.log('Generating mock response based on actual changes');
+      debugLog('Generating mock response based on actual changes');
       
       // Group changes by type
       const addedFiles = changes.filter(change => change.changeType === 'added');
@@ -434,7 +446,7 @@ Affected files:
     }
     
     // Fallback to default mock response if no changes
-    console.log('Generating default mock response');
+    debugLog('Generating default mock response');
     if (language === 'zh') {
       return `[修改] 更新示例笔记
 
