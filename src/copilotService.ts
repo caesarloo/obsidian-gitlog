@@ -15,8 +15,9 @@ function log(message: string) {
     return;
   }
   console.log(`[GitLog-Copilot] ${message}`);
-  if (typeof window !== 'undefined' && window.console) {
-    window.console.log(`[GitLog-Copilot] ${message}`);
+  const globalConsole = (globalThis as { console?: { log: (...args: unknown[]) => void } }).console;
+  if (globalConsole) {
+    globalConsole.log(`[GitLog-Copilot] ${message}`);
   }
 }
 
@@ -208,6 +209,8 @@ Requirements:
     const addedFiles = changes.filter(change => change.changeType === 'added');
     const modifiedFiles = changes.filter(change => change.changeType === 'modified');
     const deletedFiles = changes.filter(change => change.changeType === 'deleted');
+    const changeDescriptions = changes.map(change => this.describeChange(change, language));
+    const uniqueThemes = Array.from(new Set(changeDescriptions.map(item => item.theme)));
     
     // Build summary
     const totalChanges = changes.length;
@@ -217,54 +220,31 @@ Requirements:
     
     if (language === 'zh') {
       if (totalChanges === 1) {
-        const change = changes[0];
-        switch (change.changeType) {
-          case 'added':
-            description = `新增文件 ${change.filePath}`;
-            break;
-          case 'modified':
-            const diffSummary = this.extractDiffSummary(change.diff, language);
-            description = `修改文件 ${change.filePath} ${diffSummary}`;
-            break;
-          case 'deleted':
-            description = `删除文件 ${change.filePath}`;
-            break;
-        }
+        description = changeDescriptions[0].detail;
       } else {
-        // Generate comprehensive summary
-        if (modifiedFiles.length > 0) {
-          description += `更新了 ${modifiedFiles.length} 个文件`;
-          if (addedFiles.length > 0) {
-            description += `，新增了 ${addedFiles.length} 个文件`;
+        const operationSummary = this.buildOperationSummary(addedFiles.length, modifiedFiles.length, deletedFiles.length, language);
+        const themePreview = uniqueThemes.slice(0, 3).join('、');
+        description = `本次变更涉及 ${totalChanges} 个文件，${operationSummary}`;
+        if (themePreview) {
+          description += `，主要内容包括：${themePreview}${uniqueThemes.length > 3 ? ' 等' : ''}`;
+        }
+
+        if (strategy === 'detailed') {
+          const keyItems = changeDescriptions.slice(0, 6).map(item => `- ${item.detail}`);
+          if (changeDescriptions.length > 6) {
+            keyItems.push(`- 其余 ${changeDescriptions.length - 6} 个文件已一并更新`);
           }
-          if (deletedFiles.length > 0) {
-            description += `，删除了 ${deletedFiles.length} 个文件`;
-          }
-          
-          // Add specific changes for key files
-          if (strategy === 'detailed') {
-            const keyFiles = modifiedFiles.slice(0, 3); // Focus on first 3 modified files
-            for (const file of keyFiles) {
-              const diffSummary = this.extractDiffSummary(file.diff, language);
-              if (diffSummary) {
-                description += `\n- ${file.filePath} ${diffSummary}`;
-              }
-            }
-            if (modifiedFiles.length > 3) {
-              description += `\n- 等 ${modifiedFiles.length - 3} 个其他文件`;
-            }
-          }
-        } else if (addedFiles.length > 0) {
-          description = `新增了 ${addedFiles.length} 个文件`;
-        } else if (deletedFiles.length > 0) {
-          description = `删除了 ${deletedFiles.length} 个文件`;
+          description += `\n${keyItems.join('\n')}`;
         }
       }
       
       // Build final log
       const affectedFiles = changes.map(change => change.filePath).join('\n- ');
+      const header = totalChanges === 1
+        ? `[修改] ${changeDescriptions[0].theme}`
+        : this.buildHeaderByThemes(uniqueThemes, totalChanges, language);
       
-      return `[修改] ${totalChanges === 1 ? description : `批量更新 ${totalChanges} 个文件`}
+      return `${header}
 
 详细描述：
 ${description}
@@ -273,54 +253,31 @@ ${description}
 - ${affectedFiles}`;
     } else {
       if (totalChanges === 1) {
-        const change = changes[0];
-        switch (change.changeType) {
-          case 'added':
-            description = `Add file ${change.filePath}`;
-            break;
-          case 'modified':
-            const diffSummary = this.extractDiffSummary(change.diff, language);
-            description = `Update file ${change.filePath} ${diffSummary}`;
-            break;
-          case 'deleted':
-            description = `Delete file ${change.filePath}`;
-            break;
-        }
+        description = changeDescriptions[0].detail;
       } else {
-        // Generate comprehensive summary
-        if (modifiedFiles.length > 0) {
-          description += `Updated ${modifiedFiles.length} files`;
-          if (addedFiles.length > 0) {
-            description += `, added ${addedFiles.length} files`;
+        const operationSummary = this.buildOperationSummary(addedFiles.length, modifiedFiles.length, deletedFiles.length, language);
+        const themePreview = uniqueThemes.slice(0, 3).join(', ');
+        description = `This change touches ${totalChanges} files (${operationSummary})`;
+        if (themePreview) {
+          description += `, mainly about ${themePreview}${uniqueThemes.length > 3 ? ', and more' : ''}`;
+        }
+
+        if (strategy === 'detailed') {
+          const keyItems = changeDescriptions.slice(0, 6).map(item => `- ${item.detail}`);
+          if (changeDescriptions.length > 6) {
+            keyItems.push(`- ${changeDescriptions.length - 6} more files are included in this update`);
           }
-          if (deletedFiles.length > 0) {
-            description += `, deleted ${deletedFiles.length} files`;
-          }
-          
-          // Add specific changes for key files
-          if (strategy === 'detailed') {
-            const keyFiles = modifiedFiles.slice(0, 3); // Focus on first 3 modified files
-            for (const file of keyFiles) {
-              const diffSummary = this.extractDiffSummary(file.diff, language);
-              if (diffSummary) {
-                description += `\n- ${file.filePath} ${diffSummary}`;
-              }
-            }
-            if (modifiedFiles.length > 3) {
-              description += `\n- and ${modifiedFiles.length - 3} other files`;
-            }
-          }
-        } else if (addedFiles.length > 0) {
-          description = `Added ${addedFiles.length} files`;
-        } else if (deletedFiles.length > 0) {
-          description = `Deleted ${deletedFiles.length} files`;
+          description += `\n${keyItems.join('\n')}`;
         }
       }
       
       // Build final log
       const affectedFiles = changes.map(change => change.filePath).join('\n- ');
+      const header = totalChanges === 1
+        ? `[Modify] ${changeDescriptions[0].theme}`
+        : this.buildHeaderByThemes(uniqueThemes, totalChanges, language);
       
-      return `[Modify] ${totalChanges === 1 ? description : `Update ${totalChanges} files`}
+      return `${header}
 
 Detailed description:
 ${description}
@@ -330,140 +287,123 @@ Affected files:
     }
   }
 
-  /**
-   * Build prompt for Copilot
-   */
-  private buildPrompt(changes: Array<{ filePath: string; changeType: string; diff: string }>, language: 'zh' | 'en', strategy: 'detailed' | 'simple'): string {
-    const fileChanges = changes.map(change => {
-      return `File: ${change.filePath}\nType: ${change.changeType}\nDiff: ${change.diff}\n`;
-    }).join('\n');
+  private buildHeaderByThemes(themes: string[], totalChanges: number, language: 'zh' | 'en'): string {
+    const preview = themes.slice(0, 2);
+    if (language === 'zh') {
+      if (preview.length === 0) {
+        return `[修改] 更新 ${totalChanges} 个文件`;
+      }
+      return `[修改] ${preview.join('、')}${themes.length > 2 ? ' 等内容更新' : ''}`;
+    }
 
-    const languagePrompt = language === 'zh' ? '中文' : 'English';
-    const strategyPrompt = strategy === 'detailed' ? '详细' : '简洁';
-
-    return `请根据以下Git文件变更，生成一个${strategyPrompt}的${languagePrompt}提交日志：\n\n${fileChanges}\n\n要求：\n1. 日志应该清晰地描述变更内容\n2. 遵循Git提交规范\n3. 使用${languagePrompt}撰写\n4. ${strategy === 'detailed' ? '提供详细的变更说明' : '保持简洁明了'}`;
+    if (preview.length === 0) {
+      return `[Modify] Update ${totalChanges} files`;
+    }
+    return `[Modify] ${preview.join(' & ')}${themes.length > 2 ? ' and related updates' : ''}`;
   }
 
-  /**
-   * Mock Copilot response for demonstration
-   */
-  private async mockCopilotResponse(prompt: string, language: 'zh' | 'en', changes?: Array<{ filePath: string; changeType: string; diff: string }>): Promise<string> {
-    // Simulate API call delay
-    await new Promise(resolve => setTimeout(resolve, 1000));
-
-    // Generate response based on actual changes if available
-    if (changes && changes.length > 0) {
-      debugLog('Generating mock response based on actual changes');
-      
-      // Group changes by type
-      const addedFiles = changes.filter(change => change.changeType === 'added');
-      const modifiedFiles = changes.filter(change => change.changeType === 'modified');
-      const deletedFiles = changes.filter(change => change.changeType === 'deleted');
-      
-      // Build summary
-      const totalChanges = changes.length;
-      const affectedFiles = changes.map(change => change.filePath).join('\n- ');
-      
-      // Generate detailed descriptions for each file
-      const detailedDescriptions = [];
-      
-      for (const change of changes) {
-        let fileDescription = '';
-        
-        switch (change.changeType) {
-          case 'added':
-            fileDescription = language === 'zh' ? `新增文件 ${change.filePath}` : `Add file ${change.filePath}`;
-            break;
-          case 'deleted':
-            fileDescription = language === 'zh' ? `删除文件 ${change.filePath}` : `Delete file ${change.filePath}`;
-            break;
-          case 'modified':
-            const diffSummary = this.extractDiffSummary(change.diff, language);
-            fileDescription = language === 'zh' 
-              ? `修改文件 ${change.filePath} ${diffSummary}` 
-              : `Modify file ${change.filePath} ${diffSummary}`;
-            break;
-        }
-        
-        detailedDescriptions.push(`- ${fileDescription}`);
-      }
-      
-      if (language === 'zh') {
-        let message = '';
-        
-        if (totalChanges === 1) {
-          const change = changes[0];
-          switch (change.changeType) {
-            case 'added':
-              message = `[新增] 添加文件 ${change.filePath}`;
-              break;
-            case 'modified':
-              message = `[修改] 更新文件 ${change.filePath}`;
-              break;
-            case 'deleted':
-              message = `[删除] 删除文件 ${change.filePath}`;
-              break;
-          }
-        } else {
-          message = `[修改] 批量更新 ${totalChanges} 个文件`;
-        }
-        
-        return `${message}
-
-详细描述：
-${detailedDescriptions.join('\n')}
-
-影响范围：
-- ${affectedFiles}`;
-      } else {
-        let message = '';
-        
-        if (totalChanges === 1) {
-          const change = changes[0];
-          switch (change.changeType) {
-            case 'added':
-              message = `[Add] Add file ${change.filePath}`;
-              break;
-            case 'modified':
-              message = `[Modify] Update file ${change.filePath}`;
-              break;
-            case 'deleted':
-              message = `[Delete] Delete file ${change.filePath}`;
-              break;
-          }
-        } else {
-          message = `[Modify] Update ${totalChanges} files`;
-        }
-        
-        return `${message}
-
-Detailed description:
-${detailedDescriptions.join('\n')}
-
-Affected files:
-- ${affectedFiles}`;
-      }
-    }
-    
-    // Fallback to default mock response if no changes
-    debugLog('Generating default mock response');
+  private buildOperationSummary(addedCount: number, modifiedCount: number, deletedCount: number, language: 'zh' | 'en'): string {
     if (language === 'zh') {
-      return `[修改] 更新示例笔记
-
-详细描述：
-- 更新了example.md文件的内容
-- 添加了新的行
-
-影响范围：notes/example.md`;
-    } else {
-      return `[Modify] Update example note
-
-Detailed description:
-- Updated content in example.md file
-- Added a new line
-
-Affected files: notes/example.md`;
+      const parts = [];
+      if (modifiedCount > 0) parts.push(`修改 ${modifiedCount} 个`);
+      if (addedCount > 0) parts.push(`新增 ${addedCount} 个`);
+      if (deletedCount > 0) parts.push(`删除 ${deletedCount} 个`);
+      return parts.length > 0 ? parts.join('，') : '无可识别的变更类型';
     }
+
+    const parts = [];
+    if (modifiedCount > 0) parts.push(`${modifiedCount} modified`);
+    if (addedCount > 0) parts.push(`${addedCount} added`);
+    if (deletedCount > 0) parts.push(`${deletedCount} deleted`);
+    return parts.length > 0 ? parts.join(', ') : 'no recognized change type';
+  }
+
+  private describeChange(change: { filePath: string; changeType: string; diff: string }, language: 'zh' | 'en'): { theme: string; detail: string } {
+    const theme = this.inferThemeFromFile(change.filePath, language);
+    const diffSummary = this.extractDiffSummary(change.diff, language);
+
+    if (language === 'zh') {
+      const action = change.changeType === 'added' ? '新增' : change.changeType === 'deleted' ? '删除' : '更新';
+      const detail = diffSummary
+        ? `${action} ${change.filePath}（${theme}，${diffSummary}）`
+        : `${action} ${change.filePath}（${theme}）`;
+      return { theme, detail };
+    }
+
+    const action = change.changeType === 'added' ? 'Add' : change.changeType === 'deleted' ? 'Delete' : 'Update';
+    const detail = diffSummary
+      ? `${action} ${change.filePath} (${theme}, ${diffSummary})`
+      : `${action} ${change.filePath} (${theme})`;
+    return { theme, detail };
+  }
+
+  private inferThemeFromFile(filePath: string, language: 'zh' | 'en'): string {
+    const normalizedPath = filePath.replace(/\\\\/g, '/').toLowerCase();
+    const fileName = normalizedPath.split('/').pop() || normalizedPath;
+    const extension = this.getFileExtension(fileName);
+
+    const keywordThemeMap = language === 'zh'
+      ? [
+          { keywords: ['日报', '周报', '日志', 'log'], theme: '工作日志更新' },
+          { keywords: ['发票', '报销', 'invoice'], theme: '发票报销明细更新' },
+          { keywords: ['评优', '表彰', '公示', 'award'], theme: '评优公示材料同步' },
+          { keywords: ['需求', '评审', 'review'], theme: '需求与评审文档调整' },
+          { keywords: ['settings', 'config', '配置'], theme: '配置项调整' }
+        ]
+      : [
+          { keywords: ['log', 'journal', 'daily'], theme: 'work log update' },
+          { keywords: ['invoice', 'expense', 'reimbursement'], theme: 'invoice data update' },
+          { keywords: ['award', 'announcement', 'publicity'], theme: 'announcement material sync' },
+          { keywords: ['requirement', 'review'], theme: 'requirement/review document update' },
+          { keywords: ['settings', 'config'], theme: 'configuration update' }
+        ];
+
+    for (const item of keywordThemeMap) {
+      if (item.keywords.some(keyword => normalizedPath.includes(keyword))) {
+        return item.theme;
+      }
+    }
+
+    if (language === 'zh') {
+      switch (extension) {
+        case 'md':
+          return '文档内容更新';
+        case 'pdf':
+          return '文档附件同步';
+        case 'xlsx':
+        case 'xls':
+        case 'csv':
+          return '表格数据更新';
+        case 'json':
+        case 'yaml':
+        case 'yml':
+          return '结构化配置更新';
+        default:
+          return '文件内容更新';
+      }
+    }
+
+    switch (extension) {
+      case 'md':
+        return 'document content update';
+      case 'pdf':
+        return 'document attachment sync';
+      case 'xlsx':
+      case 'xls':
+      case 'csv':
+        return 'spreadsheet data update';
+      case 'json':
+      case 'yaml':
+      case 'yml':
+        return 'structured config update';
+      default:
+        return 'file content update';
+    }
+  }
+
+  private getFileExtension(fileName: string): string {
+    const match = fileName.match(/\.([^.]+)$/);
+    return match ? match[1].toLowerCase() : '';
   }
 
   /**

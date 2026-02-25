@@ -1,6 +1,6 @@
 {
   "name": "obsidian-gitlog",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Generate Git commit logs automatically using Copilot AI based on file changes",
   "main": "dist/main.js",
   "scripts": {
