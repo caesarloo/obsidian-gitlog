@@ -1,7 +1,7 @@
 {
   "id": "obsidian-gitlog",
   "name": "Git Log Generator",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "minAppVersion": "1.5.0",
   "description": "Generate Git commit logs automatically using Copilot AI based on file changes",
   "author": "CaesarLoo",

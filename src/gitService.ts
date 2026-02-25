@@ -52,7 +52,7 @@ export class GitService {
           debugLog('Git changes details:', JSON.stringify(gitChanges, null, 2));
           
           changes = gitChanges.map((change: any) => ({
-            filePath: change.path,
+            filePath: this.normalizeGitStatusPath(change.path || ''),
             changeType: change.status as 'added' | 'modified' | 'deleted',
             diff: change.diff || ''
           }));
@@ -75,7 +75,7 @@ export class GitService {
               debugLog(`Diff for ${path}: ${diff}`);
               
               changes.push({
-                filePath: path,
+                filePath: this.normalizeGitStatusPath(path),
                 changeType: this.mapGitStatusToChangeType(statusObj.worktreeStatus),
                 diff: diff || ''
               });
@@ -152,11 +152,11 @@ export class GitService {
       const vaultPath = this.app.vault.adapter.basePath;
       debugLog('Vault path:', vaultPath);
       
-      const { execSync } = require('child_process');
+      const { execFileSync } = require('node:child_process');
       
       // Check if we're in a git repository
       try {
-        execSync('git rev-parse --is-inside-work-tree', { cwd: vaultPath, stdio: 'ignore' });
+        execFileSync('git', ['rev-parse', '--is-inside-work-tree'], { cwd: vaultPath, stdio: 'ignore' });
         debugLog('Confirmed we are in a git repository');
       } catch (e) {
         debugLog('Not in a git repository');
@@ -164,7 +164,7 @@ export class GitService {
       }
       
       // Get git status
-      const statusOutput = execSync('git status --porcelain', { cwd: vaultPath, encoding: 'utf8' });
+      const statusOutput = execFileSync('git', ['-c', 'core.quotepath=false', 'status', '--porcelain'], { cwd: vaultPath, encoding: 'utf8' });
       debugLog('Git status output:', statusOutput);
       
       const changes: GitChange[] = [];
@@ -177,13 +177,14 @@ export class GitService {
         if (!line.trim()) continue;
         
         const status = line.substring(0, 2).trim();
-        const path = line.substring(3).trim();
+        const rawPath = line.substring(3).trim();
+        const path = this.normalizeGitStatusPath(rawPath);
         debugLog(`Status: ${status}, Path: ${path}`);
         
         // Get diff for the file
         let diff = '';
         try {
-          diff = execSync(`git diff ${path}`, { cwd: vaultPath, encoding: 'utf8' });
+          diff = execFileSync('git', ['-c', 'core.quotepath=false', 'diff', '--', path], { cwd: vaultPath, encoding: 'utf8' });
           debugLog(`Diff for ${path}:`, diff);
         } catch (e) {
           console.warn(`Error getting diff for ${path}:`, e);
@@ -210,6 +211,7 @@ export class GitService {
   private mapGitStatusToChangeType(status: string): 'added' | 'modified' | 'deleted' {
     switch (status) {
       case 'A':
+      case '??':
         return 'added';
       case 'M':
         return 'modified';
@@ -218,6 +220,89 @@ export class GitService {
       default:
         return 'modified';
     }
+  }
+
+  private normalizeGitStatusPath(rawPath: string): string {
+    let normalizedPath = rawPath.trim();
+
+    if (normalizedPath.includes(' -> ')) {
+      normalizedPath = normalizedPath.split(' -> ').pop() || normalizedPath;
+    }
+
+    if (normalizedPath.startsWith('"') && normalizedPath.endsWith('"')) {
+      normalizedPath = this.decodeGitQuotedPath(normalizedPath.slice(1, -1));
+    }
+
+    return normalizedPath;
+  }
+
+  private decodeGitQuotedPath(encodedPath: string): string {
+    const octalBytes: number[] = [];
+    let decoded = '';
+
+    const flushOctalBytes = () => {
+      if (octalBytes.length === 0) {
+        return;
+      }
+      decoded += Buffer.from(octalBytes).toString('utf8');
+      octalBytes.length = 0;
+    };
+
+    let index = 0;
+    while (index < encodedPath.length) {
+      const currentChar = encodedPath[index];
+
+      if (currentChar !== '\\') {
+        flushOctalBytes();
+        decoded += currentChar;
+        index += 1;
+        continue;
+      }
+
+      const nextChar = encodedPath[index + 1];
+      if (!nextChar) {
+        flushOctalBytes();
+        decoded += currentChar;
+        index += 1;
+        continue;
+      }
+
+      const octalMatch = /^[0-7]{1,3}/.exec(encodedPath.slice(index + 1));
+      if (octalMatch) {
+        octalBytes.push(Number.parseInt(octalMatch[0], 8));
+        index += octalMatch[0].length;
+        index += 1;
+        continue;
+      }
+
+      flushOctalBytes();
+
+      switch (nextChar) {
+        case '\\':
+          decoded += '\\';
+          break;
+        case '"':
+          decoded += '"';
+          break;
+        case 't':
+          decoded += '\t';
+          break;
+        case 'n':
+          decoded += '\n';
+          break;
+        case 'r':
+          decoded += '\r';
+          break;
+        default:
+          decoded += nextChar;
+          break;
+      }
+      index += 1;
+      index += 1;
+    }
+
+    flushOctalBytes();
+    return decoded;
   }
 
   /**
