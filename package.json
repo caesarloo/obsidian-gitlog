@@ -6,6 +6,7 @@
   "scripts": {
     "dev": "vite build --watch",
     "build": "vite build",
+    "postbuild": "node scripts/copy-plugin-assets.mjs",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [
