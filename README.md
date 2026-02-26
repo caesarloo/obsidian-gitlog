@@ -51,6 +51,27 @@ Git Log Generator是一个Obsidian插件，依赖Git插件和Copilot插件，使
 	- `git tag v1.0.1`
 	- `git push origin v1.0.1`
 
+### Windows 本地开发环境修复
+
+当你遇到以下问题时可使用一键修复：
+
+- `uv` 命令找不到
+- PowerShell 中 `npm` 因执行策略被拦截
+- `node` / `npm` 已安装但 PATH 未生效
+
+在项目根目录执行：
+
+- `npm run doctor:win`
+
+脚本会自动完成：
+
+- 设置 `CurrentUser` 作用域执行策略为 `RemoteSigned`
+- 尝试修复 `uv` 的用户 PATH
+- 尝试修复 `node` 的用户 PATH
+- 验证 `uv` / `node` / `npm` 可用性
+
+脚本完成后，建议重开一个 PowerShell 终端。
+
 ## 使用方法
 
 ### 生成Git提交日志

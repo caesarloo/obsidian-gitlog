@@ -6,6 +6,7 @@
   "scripts": {
     "dev": "vite build --watch",
     "build": "vite build",
+    "doctor:win": "powershell -ExecutionPolicy Bypass -File scripts/setup-dev-env.ps1",
     "postbuild": "node scripts/copy-plugin-assets.mjs",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
