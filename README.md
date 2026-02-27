@@ -46,10 +46,10 @@ Git Log Generator是一个Obsidian插件，依赖Git插件和Copilot插件，使
 ### 自动发版（Tag）
 
 - 本项目已配置工作流：推送语义化版本标签时自动创建 Release 并上传插件资产。
-- 标签格式：`v*.*.*`（例如：`v1.0.1`）。
+- 标签格式：`v*.*.*`（例如：`v1.0.2`）。
 - 示例命令：
-	- `git tag v1.0.1`
-	- `git push origin v1.0.1`
+	- `git tag v1.0.2`
+	- `git push origin v1.0.2`
 
 ### Windows 本地开发环境修复
 
